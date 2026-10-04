@@ -22,7 +22,8 @@ A multi-tenant backend for small shopkeepers and dealers to manage inventory, cr
 **Working now**
 - Application starts and connects to MySQL
 - Health check endpoints
-- `users` and `shops` tables created from JPA entities
+- Complete database schema (9 tables) created from JPA entities
+- Database-level rules: per-shop unique names, SKUs and invoice numbers, plus foreign keys
 
 **Planned**
 - Dealer registration and login (JWT authentication)
@@ -82,37 +83,41 @@ MySQL Database
 
 ## Database Design
 
-Tables are created from JPA entities. All tables share `id`, `created_at` and `updated_at`.
-
-**Implemented**
+Tables are created from JPA entities. Every table has `id`, `created_at` and `updated_at`.
 
 ```text
-users                         shops
------                         -----
-id (PK)                       id (PK)
-name                          name
-email (unique)                owner_name
-phone                         address, phone, email
-password_hash                 gst_number
-role (DEALER / ADMIN)         upi_id, logo_url
-active                        owner_id (FK → users.id)
+users
+ └── shops (owner_id)
+      ├── categories (shop_id)
+      │    └── products (shop_id, category_id)
+      │         ├── bill_items (bill_id, product_id)
+      │         └── stock_transactions (shop_id, product_id)
+      ├── customers (shop_id)
+      └── bills (shop_id, customer_id, created_by_id)
+           ├── bill_items
+           └── payments (shop_id, bill_id)
 ```
 
-A shop belongs to a user. The relationship is many-to-one so one dealer can own several shops in the future. For now the application will allow one shop per dealer.
+| Table | Purpose |
+|---|---|
+| `users` | Dealer and admin accounts (email is unique, only a password hash is stored) |
+| `shops` | A dealer's shop details, GST number and UPI ID |
+| `categories` | Custom product categories, unique per shop |
+| `products` | Items with SKU, barcode, prices, stock, unit and active flag |
+| `customers` | A shop's customers |
+| `bills` | Invoice header: totals, status, invoice number unique per shop |
+| `bill_items` | Lines of a bill, with a copy of the product name and price at sale time |
+| `payments` | Payment records with method, status and provider reference |
+| `stock_transactions` | Append-only stock history (PURCHASE, SALE, ADJUSTMENT, RETURN) |
 
-**Planned**
-
-```text
-shops
- ├── categories
- ├── products ── stock_transactions
- ├── customers
- └── bills
-      ├── bill_items
-      └── payments
-```
-
-Every business table will carry a `shop_id`, which is what makes tenant isolation possible.
+**Key design decisions**
+- **Tenant isolation:** every business table carries a `shop_id`.
+- **Per-shop uniqueness:** two shops can both have a category "Snacks" or an invoice `INV-0001`, but one shop cannot repeat them.
+- **Money and stock use `BigDecimal`**, never `double`, to avoid rounding errors and to support quantities like 2.5 kg.
+- **Bill items keep a price snapshot**, so old invoices never change when prices change.
+- **Bills are cancelled, not deleted**, to keep a clean audit trail.
+- **Payment status lives only in `payments`**, so there is one source of truth.
+- **A shop belongs to a user through a many-to-one link**, so one dealer can own several shops later. For now the application will allow one shop per dealer.
 
 ## Project Structure
 
@@ -124,7 +129,13 @@ dealer-shop-backend/
  │   │   │   ├── controller/
  │   │   │   ├── service/
  │   │   │   ├── repository/
- │   │   │   ├── entity/          (BaseEntity, Role, User, Shop)
+ │   │   │   ├── entity/
+ │   │   │   │    ├── BaseEntity, Role, Unit
+ │   │   │   │    ├── User, Shop
+ │   │   │   │    ├── Category, Product, Customer
+ │   │   │   │    ├── Bill, BillItem, BillStatus
+ │   │   │   │    ├── Payment, PaymentMethod, PaymentStatus
+ │   │   │   │    └── StockTransaction, StockTransactionType
  │   │   │   ├── dto/
  │   │   │   ├── mapper/
  │   │   │   ├── security/
@@ -173,7 +184,7 @@ CREATE DATABASE dealershop;
    - http://localhost:8080/api/ping
    - http://localhost:8080/actuator/health (should return `{"status":"UP"}`)
 
-The tables are created automatically on startup.
+All tables are created automatically on startup.
 
 ## Environment Variables
 
@@ -190,8 +201,8 @@ Secrets are never committed to GitHub. See `.env.example` for the list.
 ## Roadmap
 
 - [x] Phase 1: Project foundation and database connection
-- [ ] Phase 2: Database entities and relationships _(in progress: users and shops done)_
-- [ ] Phase 3: Authentication and JWT security
+- [x] Phase 2: Database entities and relationships
+- [ ] Phase 3: Authentication and JWT security _(next)_
 - [ ] Phase 4: Shop management
 - [ ] Phase 5: Categories
 - [ ] Phase 6: Products and stock
