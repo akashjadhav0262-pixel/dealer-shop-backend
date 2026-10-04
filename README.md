@@ -1,223 +1,121 @@
 # DealerShop
 
-A multi-tenant backend for small shopkeepers and dealers to manage inventory, create bills, accept payments and generate invoices. Every dealer gets a private shop, and no dealer can ever see another dealer's data.
+DealerShop is a backend project I am building with Java and Spring Boot. It is for small shop owners who want to manage their products, stock, customers and bills in one place.
 
-## Live Demo
+Many shops can use the same app, but each shop only sees its own data. One shop should never be able to see another shop's products, customers or bills.
 
-🚧 Not deployed yet. The plan is to deploy on AWS (EC2 + RDS) and add the link here.
+## Why I made this
 
-- Live API: _coming soon_
-- Swagger docs: _coming soon_
+I am a fresher and I wanted a real project to learn backend development properly. I am using it to learn Spring Boot, MySQL, security, Docker, CI/CD and AWS, and to show in interviews.
 
-## About the Project
+## What is done so far
 
-**Why I built it:** I wanted a real-world project to learn backend development properly: Spring Boot, security, databases, Docker, CI/CD and cloud deployment. It also serves as a project I can walk through in interviews.
+- Spring Boot project is set up and connected to MySQL
+- Health check endpoints work
+- All 9 database tables are created from Java classes (entities)
+- Git and GitHub are set up
 
-**What problem it solves:** Small shops often track stock and bills on paper or in notebooks, which makes it hard to know what is in stock, what was sold and who still owes money. DealerShop gives each shop a simple system for all of this.
+## What I plan to add
 
-**Who can use it:** Shopkeepers, dealers and small retailers. Many shops can use the same application, and each one only sees its own products, customers, bills and reports.
-
-## Features
-
-**Working now**
-- Application starts and connects to MySQL
-- Health check endpoints
-- Complete database schema (9 tables) created from JPA entities
-- Database-level rules: per-shop unique names, SKUs and invoice numbers, plus foreign keys
-
-**Planned**
-- Dealer registration and login (JWT authentication)
-- Role-based authorization (DEALER, ADMIN)
-- Tenant isolation, so Dealer A can never access Dealer B's data
-- Shop profile management
-- Custom product categories
-- Add, update, delete and view products
-- Search and filter products, low-stock detection
-- Stock tracking with a full history of changes
-- Customer management and bill history
-- Billing with server-side price, discount and tax calculation
-- Cash and UPI payments, plus QR payment information
-- PDF invoice download
+- Register and login with JWT
+- Shop details
+- Categories and products
+- Stock tracking
+- Customers
+- Billing (the backend calculates all prices and totals)
+- Cash and UPI payments, QR code
+- PDF invoice
 - Dashboard and sales reports
-- Email notifications (SMS and WhatsApp later)
+- Docker, GitHub Actions and AWS deployment
 
-## Tech Stack
+## Tech used
 
-### Backend
 - Java 21
 - Spring Boot
-- Spring Data JPA and Hibernate
+- Spring Data JPA (Hibernate)
 - MySQL
-- Spring Security and JWT _(planned)_
-
-### Tools
-- Git and GitHub
 - Maven
+- Git and GitHub
 - IntelliJ IDEA
-- Postman
 
-### Planned
-- Docker and Docker Compose
-- GitHub Actions (CI/CD)
-- AWS EC2 and RDS
-- Swagger / OpenAPI
-- JUnit and Mockito
+Coming later: Spring Security, JWT, Docker, GitHub Actions, AWS, Swagger, JUnit and Mockito.
 
-## Architecture
+## How the code is organised
 
 ```text
-Client (Postman / Swagger / future frontend)
- ↓
-REST API
- ↓
-Controller      (handles HTTP requests, no business logic)
- ↓
-Service         (business rules, tenant checks, transactions)
- ↓
-Repository      (database access)
- ↓
-MySQL Database
+Controller  -> takes the request
+Service     -> does the work (business logic)
+Repository  -> talks to the database
 ```
 
-**Tenant isolation:** each request carries a JWT that identifies the dealer and their shop. Every query looks up data by ID **and** shop, so changing an ID in a request never exposes another dealer's data.
+Packages: `controller`, `service`, `repository`, `entity`, `dto`, `mapper`, `security`, `exception`, `config`, `util`.
 
-## Database Design
+## Database tables
 
-Tables are created from JPA entities. Every table has `id`, `created_at` and `updated_at`.
-
-```text
-users
- └── shops (owner_id)
-      ├── categories (shop_id)
-      │    └── products (shop_id, category_id)
-      │         ├── bill_items (bill_id, product_id)
-      │         └── stock_transactions (shop_id, product_id)
-      ├── customers (shop_id)
-      └── bills (shop_id, customer_id, created_by_id)
-           ├── bill_items
-           └── payments (shop_id, bill_id)
-```
-
-| Table | Purpose |
+| Table | What it stores |
 |---|---|
-| `users` | Dealer and admin accounts (email is unique, only a password hash is stored) |
-| `shops` | A dealer's shop details, GST number and UPI ID |
-| `categories` | Custom product categories, unique per shop |
-| `products` | Items with SKU, barcode, prices, stock, unit and active flag |
-| `customers` | A shop's customers |
-| `bills` | Invoice header: totals, status, invoice number unique per shop |
-| `bill_items` | Lines of a bill, with a copy of the product name and price at sale time |
-| `payments` | Payment records with method, status and provider reference |
-| `stock_transactions` | Append-only stock history (PURCHASE, SALE, ADJUSTMENT, RETURN) |
+| users | Dealer accounts |
+| shops | Shop details |
+| categories | Product categories of a shop |
+| products | Products, price and stock |
+| customers | Customers of a shop |
+| bills | Bill details and totals |
+| bill_items | Products inside a bill |
+| payments | Payment details of a bill |
+| stock_transactions | History of stock changes |
 
-**Key design decisions**
-- **Tenant isolation:** every business table carries a `shop_id`.
-- **Per-shop uniqueness:** two shops can both have a category "Snacks" or an invoice `INV-0001`, but one shop cannot repeat them.
-- **Money and stock use `BigDecimal`**, never `double`, to avoid rounding errors and to support quantities like 2.5 kg.
-- **Bill items keep a price snapshot**, so old invoices never change when prices change.
-- **Bills are cancelled, not deleted**, to keep a clean audit trail.
-- **Payment status lives only in `payments`**, so there is one source of truth.
-- **A shop belongs to a user through a many-to-one link**, so one dealer can own several shops later. For now the application will allow one shop per dealer.
+Most tables have a `shop_id` column so that every shop's data stays separate.
 
-## Project Structure
+Some things I did on purpose:
+- Prices and quantities use `BigDecimal` instead of `double` to avoid rounding mistakes.
+- A bill item saves the product name and price at the time of sale, so old bills do not change when prices change.
+- Bills are cancelled, not deleted.
 
-```text
-dealer-shop-backend/
- ├── src/
- │   ├── main/
- │   │   ├── java/com/dealershop/dealer_shop_backend/
- │   │   │   ├── controller/
- │   │   │   ├── service/
- │   │   │   ├── repository/
- │   │   │   ├── entity/
- │   │   │   │    ├── BaseEntity, Role, Unit
- │   │   │   │    ├── User, Shop
- │   │   │   │    ├── Category, Product, Customer
- │   │   │   │    ├── Bill, BillItem, BillStatus
- │   │   │   │    ├── Payment, PaymentMethod, PaymentStatus
- │   │   │   │    └── StockTransaction, StockTransactionType
- │   │   │   ├── dto/
- │   │   │   ├── mapper/
- │   │   │   ├── security/
- │   │   │   ├── exception/
- │   │   │   ├── config/
- │   │   │   └── util/
- │   │   └── resources/
- │   │       └── application.properties
- │   └── test/
- ├── .env.example
- ├── .gitignore
- ├── pom.xml
- └── README.md
+## How to run it
+
+You need Java 21, MySQL and Git.
+
+1. Clone the project
 ```
-
-## Getting Started
-
-### Prerequisites
-- Java 21
-- MySQL
-- Git
-
-### Setup
-
-1. Clone the repository
-```bash
-git clone https://github.com/akashjadhav0262-pixel/dealer-shop-backend.git
-cd dealer-shop-backend
+   git clone https://github.com/akashjadhav0262-pixel/dealer-shop-backend.git
 ```
-
-2. Create the database
+2. Create the database in MySQL
 ```sql
-CREATE DATABASE dealershop;
+   CREATE DATABASE dealershop;
 ```
-
-3. Set your database password as an environment variable `DATABASE_PASSWORD`.
-   In IntelliJ: Run → Edit Configurations → Environment variables.
-   Other settings are listed in `.env.example`.
-
-4. Run the application
-```bash
-.\mvnw.cmd spring-boot:run
-```
-
-5. Check that it works
+3. Add your MySQL password as an environment variable named `DATABASE_PASSWORD`
+   (in IntelliJ: Run -> Edit Configurations -> Environment variables)
+4. Run the app from IntelliJ
+5. Open these in the browser to check:
    - http://localhost:8080/api/ping
-   - http://localhost:8080/actuator/health (should return `{"status":"UP"}`)
+   - http://localhost:8080/actuator/health
 
-All tables are created automatically on startup.
+The tables are created automatically when the app starts.
 
-## Environment Variables
+## Settings
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | JDBC URL of the MySQL database |
-| `DATABASE_USERNAME` | Database user |
-| `DATABASE_PASSWORD` | Database password |
-| `JWT_SECRET` | Secret used to sign tokens _(planned)_ |
-| `PAYMENT_SECRET` | Payment provider secret _(planned)_ |
+Passwords and secrets are not stored in the code. They are read from environment variables. See `.env.example` for the list.
 
-Secrets are never committed to GitHub. See `.env.example` for the list.
+## Progress
 
-## Roadmap
-
-- [x] Phase 1: Project foundation and database connection
-- [x] Phase 2: Database entities and relationships
-- [ ] Phase 3: Authentication and JWT security _(next)_
-- [ ] Phase 4: Shop management
+- [x] Phase 1: Project setup and database connection
+- [x] Phase 2: Database tables (entities)
+- [ ] Phase 3: Register, login and JWT (next)
+- [ ] Phase 4: Shop
 - [ ] Phase 5: Categories
 - [ ] Phase 6: Products and stock
 - [ ] Phase 7: Customers
 - [ ] Phase 8: Billing
 - [ ] Phase 9: Payments and QR
-- [ ] Phase 10: PDF invoices
+- [ ] Phase 10: PDF invoice
 - [ ] Phase 11: Dashboard and reports
 - [ ] Phase 12: Notifications
 - [ ] Phase 13: Testing
 - [ ] Phase 14: Docker
-- [ ] Phase 15: CI/CD with GitHub Actions
+- [ ] Phase 15: CI/CD
 - [ ] Phase 16: AWS deployment
 
-## Author
+## About me
 
-**Akash Shankar Jadhav**
+Akash Shankar Jadhav
 GitHub: [akashjadhav0262-pixel](https://github.com/akashjadhav0262-pixel)
