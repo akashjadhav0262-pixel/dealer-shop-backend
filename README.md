@@ -13,11 +13,15 @@ I am a fresher and I wanted a real project to learn backend development properly
 - Spring Boot project is set up and connected to MySQL
 - Health check endpoints work
 - All 9 database tables are created from Java classes (entities)
+- Dealer registration works (`POST /api/auth/register`)
+- Passwords are hashed with BCrypt, so they are never saved as plain text
+- Input validation and clean error messages (400, 401, 409)
+- All other endpoints are locked with Spring Security
 - Git and GitHub are set up
 
 ## What I plan to add
 
-- Register and login with JWT
+- Login with JWT, refresh token, logout, change and reset password
 - Shop details
 - Categories and products
 - Stock tracking
@@ -33,12 +37,14 @@ I am a fresher and I wanted a real project to learn backend development properly
 - Java 21
 - Spring Boot
 - Spring Data JPA (Hibernate)
+- Spring Security
+- Bean Validation
 - MySQL
 - Maven
 - Git and GitHub
-- IntelliJ IDEA
+- IntelliJ IDEA and Postman
 
-Coming later: Spring Security, JWT, Docker, GitHub Actions, AWS, Swagger, JUnit and Mockito.
+Coming later: JWT, Docker, GitHub Actions, AWS, Swagger, JUnit and Mockito.
 
 ## How the code is organised
 
@@ -49,6 +55,53 @@ Repository  -> talks to the database
 ```
 
 Packages: `controller`, `service`, `repository`, `entity`, `dto`, `mapper`, `security`, `exception`, `config`, `util`.
+
+## API
+
+Right now these endpoints are open (no login needed):
+
+| Method | URL | What it does |
+|---|---|---|
+| POST | /api/auth/register | Register a new dealer |
+| GET | /api/ping | Simple check that the app is running |
+| GET | /actuator/health | Health check (also checks the database) |
+
+Every other URL returns `401 Unauthorized`.
+
+**Register example**
+
+Request:
+```json
+{
+  "name": "Ramesh Kumar",
+  "email": "ramesh@example.com",
+  "phone": "9876543210",
+  "password": "Secret@123"
+}
+```
+
+Response (`201 Created`):
+```json
+{
+  "id": 1,
+  "name": "Ramesh Kumar",
+  "email": "ramesh@example.com",
+  "phone": "9876543210",
+  "role": "DEALER"
+}
+```
+
+The password is never returned, and the role is always set to `DEALER` by the server (it cannot be sent in the request).
+
+Errors look like this:
+```json
+{
+  "timestamp": "2026-10-04T12:00:00",
+  "status": 409,
+  "error": "CONFLICT",
+  "message": "Email is already registered"
+}
+```
 
 ## Database tables
 
@@ -89,6 +142,7 @@ You need Java 21, MySQL and Git.
 5. Open these in the browser to check:
    - http://localhost:8080/api/ping
    - http://localhost:8080/actuator/health
+6. Try registering a user with Postman using the example above
 
 The tables are created automatically when the app starts.
 
@@ -100,7 +154,7 @@ Passwords and secrets are not stored in the code. They are read from environment
 
 - [x] Phase 1: Project setup and database connection
 - [x] Phase 2: Database tables (entities)
-- [ ] Phase 3: Register, login and JWT (next)
+- [ ] Phase 3: Register, login and JWT (in progress: registration done)
 - [ ] Phase 4: Shop
 - [ ] Phase 5: Categories
 - [ ] Phase 6: Products and stock
