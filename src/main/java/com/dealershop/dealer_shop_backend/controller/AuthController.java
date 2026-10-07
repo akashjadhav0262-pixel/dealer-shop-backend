@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dealershop.dealer_shop_backend.dto.RegisterRequest;
 import com.dealershop.dealer_shop_backend.dto.UserResponse;
 import com.dealershop.dealer_shop_backend.service.AuthService;
+import com.dealershop.dealer_shop_backend.dto.LoginRequest;
+import com.dealershop.dealer_shop_backend.dto.LoginResponse;
 
 import jakarta.validation.Valid;
 
@@ -27,5 +29,9 @@ public class AuthController {
     public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
         UserResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }

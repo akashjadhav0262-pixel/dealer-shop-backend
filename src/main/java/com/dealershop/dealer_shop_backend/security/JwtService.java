@@ -48,4 +48,7 @@ public class JwtService {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+    public long getAccessTokenSeconds() {
+        return accessTokenMinutes * 60;
+    }
 }
