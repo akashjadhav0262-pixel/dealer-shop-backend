@@ -12,6 +12,10 @@ import com.dealershop.dealer_shop_backend.dto.UserResponse;
 import com.dealershop.dealer_shop_backend.service.AuthService;
 import com.dealershop.dealer_shop_backend.dto.LoginRequest;
 import com.dealershop.dealer_shop_backend.dto.LoginResponse;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+
+import com.dealershop.dealer_shop_backend.security.AuthenticatedUser;
 
 import jakarta.validation.Valid;
 
@@ -33,5 +37,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+    @GetMapping("/me")
+    public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return authService.getCurrentUser(principal.id());
     }
 }

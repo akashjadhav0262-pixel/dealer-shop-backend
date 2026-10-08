@@ -83,4 +83,10 @@ public class AuthService {
                 userMapper.toResponse(user)
         );
     }
+    @Transactional(readOnly = true)
+    public UserResponse getCurrentUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UnauthorizedException("User not found"));
+        return userMapper.toResponse(user);
+    }
 }
