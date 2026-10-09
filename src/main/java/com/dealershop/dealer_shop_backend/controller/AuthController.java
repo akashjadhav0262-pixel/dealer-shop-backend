@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import com.dealershop.dealer_shop_backend.security.AuthenticatedUser;
 
 import jakarta.validation.Valid;
+import com.dealershop.dealer_shop_backend.dto.RefreshTokenRequest;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -41,5 +42,15 @@ public class AuthController {
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthenticatedUser principal) {
         return authService.getCurrentUser(principal.id());
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(authService.refresh(request));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request);
+        return ResponseEntity.noContent().build();
     }
 }

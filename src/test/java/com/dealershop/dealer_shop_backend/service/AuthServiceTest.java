@@ -39,12 +39,15 @@ class AuthServiceTest {
     @Mock
     private JwtService jwtService;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         when(passwordEncoder.encode(anyString())).thenReturn("dummy-hash");
-        authService = new AuthService(userRepository, passwordEncoder, new UserMapper(), jwtService);
+        authService = new AuthService(userRepository, passwordEncoder, new UserMapper(), jwtService, refreshTokenService);
     }
 
     private User dealer() {
@@ -63,6 +66,7 @@ class AuthServiceTest {
         when(jwtService.generateAccessToken(any(), eq("ramesh@example.com"), eq(Role.DEALER)))
                 .thenReturn("fake-token");
         when(jwtService.getAccessTokenSeconds()).thenReturn(900L);
+        when(refreshTokenService.createToken(any())).thenReturn("fake-refresh-token");
 
         // spaces and capital letters in the email should not matter
         LoginResponse response = authService.login(new LoginRequest("  Ramesh@Example.com ", "Secret@123"));
@@ -71,6 +75,7 @@ class AuthServiceTest {
         assertEquals("Bearer", response.tokenType());
         assertEquals(900L, response.expiresInSeconds());
         assertEquals("ramesh@example.com", response.user().email());
+        assertEquals("fake-refresh-token", response.refreshToken());
     }
 
     @Test
