@@ -19,6 +19,7 @@ import com.dealershop.dealer_shop_backend.mapper.UserMapper;
 import com.dealershop.dealer_shop_backend.repository.UserRepository;
 import com.dealershop.dealer_shop_backend.security.JwtService;
 
+
 @Service
 public class AuthService {
 
